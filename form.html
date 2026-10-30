@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>English Quiz — Choose the correct answer</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', system-ui, sans-serif; }
+  body {
+    min-height: 100vh;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    color: #333;
+  }
+  .card {
+    background: #fff;
+    border-radius: 24px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    padding: 40px;
+    max-width: 600px;
+    width: 100%;
+    animation: slideIn 0.5s ease;
+  }
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateY(30px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  h1 {
+    font-size: 2rem;
+    margin-bottom: 10px;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .subtitle { color: #888; margin-bottom: 25px; }
+  .progress-wrap {
+    background: #eee;
+    border-radius: 20px;
+    height: 10px;
+    overflow: hidden;
+    margin-bottom: 10px;
+  }
+  .progress-bar {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, #667eea, #f093fb);
+    transition: width 0.4s ease;
+  }
+  .progress-text { font-size: 0.9rem; color: #666; margin-bottom: 20px; }
+  .question { font-size: 1.3rem; margin-bottom: 20px; font-weight: 600; line-height: 1.4; }
+  .options { display: flex; flex-direction: column; gap: 12px; }
+  .option {
+    padding: 15px 20px;
+    border: 2px solid #e0e0e0;
+    border-radius: 12px;
+    background: #fafafa;
+    cursor: pointer;
+    font-size: 1.05rem;
+    transition: all 0.2s;
+    text-align: left;
+  }
+  .option:hover:not(:disabled) {
+    border-color: #764ba2;
+    background: #f5f0ff;
+    transform: translateX(5px);
+  }
+  .option.correct {
+    border-color: #22c55e;
+    background: #dcfce7;
+    color: #166534;
+  }
+  .option.wrong {
+    border-color: #ef4444;
+    background: #fee2e2;
+    color: #991b1b;
+  }
+  .option:disabled { cursor: not-allowed; }
+  input[type="text"] {
+    width: 100%;
+    padding: 15px;
+    border: 2px solid #e0e0e0;
+    border-radius: 12px;
+    font-size: 1.1rem;
+    margin-bottom: 15px;
+    outline: none;
+    transition: border 0.2s;
+  }
+  input[type="text"]:focus { border-color: #764ba2; }
+  .btn {
+    padding: 15px 30px;
+    border: none;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: #fff;
+    font-size: 1.05rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+    width: 100%;
+  }
+  .btn:hover { transform: translateY(-2px); box-shadow: 0 10px 25px rgba(118,75,162,0.4); }
+  .btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+  .result-score {
+    font-size: 3rem;
+    font-weight: 700;
+    text-align: center;
+    margin: 20px 0;
+    background: linear-gradient(135deg, #667eea, #f093fb);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .result-msg { text-align: center; font-size: 1.2rem; margin-bottom: 20px; color: #555; }
+  .emoji { font-size: 4rem; text-align: center; margin-bottom: 10px; }
+  .hidden { display: none !important; }
+  .loader {
+    display: inline-block;
+    width: 16px; height: 16px;
+    border: 2px solid #fff;
+    border-top-color: transparent;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin-right: 8px;
+    vertical-align: middle;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+<div class="card">
+
+  <!-- Экран ввода имени -->
+  <div id="startScreen">
+    <h1>🎓 English Quiz</h1>
+    <p class="subtitle">Проверь свои знания личных местоимений и глагола <b>to be</b></p>
+    <input type="text" id="playerName" placeholder="Введите ваше имя" maxlength="40">
+    <button class="btn" id="startBtn">Начать игру 🚀</button>
+  </div>
+
+  <!-- Экран вопросов -->
+  <div id="quizScreen" class="hidden">
+    <div class="progress-wrap"><div class="progress-bar" id="progressBar"></div></div>
+    <div class="progress-text" id="progressText">0 / 15</div>
+    <div class="question" id="questionText"></div>
+    <div class="options" id="options"></div>
+  </div>
+
+  <!-- Экран результата -->
+  <div id="resultScreen" class="hidden">
+    <div class="emoji" id="resultEmoji">🎉</div>
+    <h1 style="text-align:center">Готово!</h1>
+    <div class="result-score" id="resultScore">0 / 15</div>
+    <div class="result-msg" id="resultMsg"></div>
+    <button class="btn" id="restartBtn">Пройти ещё раз 🔄</button>
+  </div>
+
+</div>
+
+<script>
+  // ⚠️ ВСТАВЬ СЮДА СВОЙ ENDPOINT С FORMSPREE (https://formspree.io)
+  const FORMSPREE_URL = "https://formspree.io/f/mgaallpe";
+
+  const questions = [
+    { q: "1. ___ am a student.", options: ["I", "My", "Me"], correct: 0 },
+    { q: "2. This is Anna. ___ is my friend.", options: ["Her", "She", "He"], correct: 1 },
+    { q: "3. Tom is ten. ___ sister is eight.", options: ["He", "His", "Him"], correct: 1 },
+    { q: "4. We ___ from Russia.", options: ["am", "is", "are"], correct: 2 },
+    { q: "5. This is my dog. ___ name is Rex.", options: ["It", "Its", "He"], correct: 1 },
+    { q: "6. ___ are my parents.", options: ["They", "Their", "Them"], correct: 0 },
+    { q: "7. She ___ a teacher.", options: ["am", "is", "are"], correct: 1 },
+    { q: "8. I have a brother. ___ name is Jack.", options: ["He", "His", "Him"], correct: 1 },
+    { q: "9. ___ are very happy today.", options: ["Our", "We", "Us"], correct: 1 },
+    { q: "10. You ___ my best friend.", options: ["am", "is", "are"], correct: 2 },
+    { q: "11. This is Lisa and this is ___ mother.", options: ["she", "her", "hers"], correct: 1 },
+    { q: "12. My brother and I have a cat. ___ cat is black.", options: ["Our", "We", "Us"], correct: 0 },
+    { q: "13. Mark is my friend. I like ___.", options: ["he", "his", "him"], correct: 2 },
+    { q: "14. They ___ at home now.", options: ["am", "is", "are"], correct: 2 },
+    { q: "15. This is Peter. ___ is a doctor and ___ wife is a nurse.", options: ["He / his", "His / he", "Him / her"], correct: 0 }
+  ];
+
+  let current = 0;
+  let score = 0;
+  let playerName = "";
+  let userAnswers = [];
+
+  const startScreen = document.getElementById("startScreen");
+  const quizScreen = document.getElementById("quizScreen");
+  const resultScreen = document.getElementById("resultScreen");
+  const nameInput = document.getElementById("playerName");
+  const startBtn = document.getElementById("startBtn");
+  const questionText = document.getElementById("questionText");
+  const optionsDiv = document.getElementById("options");
+  const progressBar = document.getElementById("progressBar");
+  const progressText = document.getElementById("progressText");
+  const resultScore = document.getElementById("resultScore");
+  const resultMsg = document.getElementById("resultMsg");
+  const resultEmoji = document.getElementById("resultEmoji");
+  const restartBtn = document.getElementById("restartBtn");
+
+  startBtn.addEventListener("click", () => {
+    const name = nameInput.value.trim();
+    if (!name) { nameInput.style.borderColor = "#ef4444"; return; }
+    playerName = name;
+    startScreen.classList.add("hidden");
+    quizScreen.classList.remove("hidden");
+    renderQuestion();
+  });
+
+  nameInput.addEventListener("keypress", e => { if (e.key === "Enter") startBtn.click(); });
+
+  function renderQuestion() {
+    const q = questions[current];
+    questionText.textContent = q.q;
+    optionsDiv.innerHTML = "";
+    q.options.forEach((opt, i) => {
+      const btn = document.createElement("button");
+      btn.className = "option";
+      btn.textContent = opt;
+      btn.addEventListener("click", () => selectAnswer(i, btn));
+      optionsDiv.appendChild(btn);
+    });
+    progressText.textContent = `${current} / 15`;
+    progressBar.style.width = (current / 15 * 100) + "%";
+  }
+
+  function selectAnswer(index, btn) {
+    const q = questions[current];
+    const allBtns = optionsDiv.querySelectorAll(".option");
+    allBtns.forEach(b => b.disabled = true);
+
+    userAnswers.push({
+      question: q.q,
+      chosen: q.options[index],
+      correct: q.options[q.correct],
+      isRight: index === q.correct
+    });
+
+    if (index === q.correct) {
+      btn.classList.add("correct");
+      score++;
+    } else {
+      btn.classList.add("wrong");
+      allBtns[q.correct].classList.add("correct");
+    }
+
+    setTimeout(() => {
+      current++;
+      if (current < questions.length) renderQuestion();
+      else showResult();
+    }, 900);
+  }
+
+  function showResult() {
+    quizScreen.classList.add("hidden");
+    resultScreen.classList.remove("hidden");
+    resultScore.textContent = `${score} / 15`;
+
+    let emoji, msg;
+    const pct = score / 15;
+    if (pct === 1) { emoji = "🏆"; msg = "Идеально! Ты настоящий профи!"; }
+    else if (pct >= 0.8) { emoji = "🎉"; msg = "Отличный результат!"; }
+    else if (pct >= 0.6) { emoji = "😊"; msg = "Хорошо! Но есть куда расти."; }
+    else if (pct >= 0.4) { emoji = "🤔"; msg = "Неплохо, но стоит повторить тему."; }
+    else { emoji = "📚"; msg = "Нужно ещё немного попрактиковаться!"; }
+
+    resultEmoji.textContent = emoji;
+    resultMsg.textContent = msg;
+
+    sendResult();
+  }
+
+  async function sendResult() {
+    // Формируем текст отчёта
+    let report = `Игрок: ${playerName}\nРезультат: ${score} из 15\n\nДетали:\n`;
+    userAnswers.forEach((a, i) => {
+      report += `\n${i+1}. ${a.question}\n   Ответ игрока: ${a.chosen} ${a.isRight ? "✅" : "❌"}\n`;
+      if (!a.isRight) report += `   Правильный ответ: ${a.correct}\n`;
+    });
+
+    // Отправка через Formspree
+    try {
+      await fetch(FORMSPREE_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Accept": "application/json" },
+        body: JSON.stringify({
+          _subject: `🎓 Quiz результат: ${playerName} — ${score}/15`,
+          player_name: playerName,
+          score: `${score} / 15`,
+          details: report
+        })
+      });
+    } catch (e) {
+      console.warn("Не удалось отправить результат:", e);
+    }
+  }
+
+  restartBtn.addEventListener("click", () => {
+    current = 0; score = 0; userAnswers = [];
+    nameInput.value = "";
+    resultScreen.classList.add("hidden");
+    startScreen.classList.remove("hidden");
+  });
+</script>
+</body>
+</html>
